@@ -20,7 +20,7 @@ Gem::Specification.new do |g|
   g.add_development_dependency "rspec", "~> 3.0"
   g.add_development_dependency "standard", "~> 1.0"
 
-  g.files = Dir.glob("{bin,lib}/**/*") + %w[readme.md]
+  g.files = Dir.glob("{bin,lib}/**/*") + %w[readme.md CHANGELOG.md]
   g.executables = Dir.glob("bin/*").map(&File.method(:basename))
   g.require_path = "lib"
 end
