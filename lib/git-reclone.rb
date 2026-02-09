@@ -1,27 +1,26 @@
 # git-reclone gem
 # jeremy warner
 
-=begin
-todo: add an option to automatically add a backup of the local copy
-todo: add all remotes other than the origins, maintain connections
-todo: -b / --backup, and this actually should be the default (maybe)
-=end
+# todo: add an option to automatically add a backup of the local copy
+# todo: add all remotes other than the origins, maintain connections
+# todo: -b / --backup, and this actually should be the default (maybe)
 
 require "colored"
 require "fileutils"
+require "tmpdir"
 require "git-reclone-version"
 
 class GitReclone
-  def initialize(test=false)
+  def initialize(test = false)
     @pdelay = 0.01 # constant for arrow speed
     @testing = test
     @verify = !test
   end
 
   def fire(args = [])
-    opts = args.select {|a| a[0] == "-" }
-    opts.each {|o| parse_opt o }
-    exit 0 if (@testing || opts.first)
+    opts = args.select { |a| a[0] == "-" }
+    opts.each { |o| parse_opt o }
+    exit 0 if @testing || opts.first
     parse_arg((args - opts).first)
   end
 
@@ -35,14 +34,14 @@ class GitReclone
     when "--force", "-f"
       @verify = false
     when "--help", "-h"
-      puts GitReclone::Help
+      puts GitReclone::HELP
     when "--version", "-v"
-      puts GitReclone::Version
+      puts GitReclone::VERSION
     end
   end
 
   def parse_arg(a)
-    a.nil?? verify(remote) : verify(remote(a))
+    a.nil? ? verify(remote) : verify(remote(a))
   end
 
   def no_repo?
@@ -51,11 +50,15 @@ class GitReclone
   end
 
   def git_root
-    %x{git rev-parse --show-toplevel}
+    `git rev-parse --show-toplevel`
+  end
+
+  def current_branch
+    `git rev-parse --abbrev-ref HEAD`.chomp
   end
 
   def remotes
-    %x{git remote -v}.split("\n").map { |r| r.split[1] }.uniq
+    `git remote -v`.split("\n").map { |r| r.split[1] }.uniq
   end
 
   def reclonebanner
@@ -80,9 +83,9 @@ class GitReclone
     if r.nil?
       errmsg = "No remotes found that match #{search.to_s.red}. All remotes:\n" + remotes.join("\n")
       pexit errmsg
-      return errmsg
+      errmsg
     else
-      return r
+      r
     end
   end
 
@@ -92,8 +95,11 @@ class GitReclone
     puts "Remote source:\t".red << r
     puts "Local target:\t".red << git_root
 
+    branch = current_branch
+    puts "Current branch:\t".red << branch unless branch == "HEAD"
+
     if @verify
-      puts "Warning: this will completely overwrite the local copy.".yellow
+      puts "Warning: this will replace the local copy with a fresh clone from the remote.".yellow
       printf "Continue recloning local repo? [yN] ".yellow
       unless $stdin.gets.chomp.downcase[0] == "y"
         puts "Reclone aborted.".green
@@ -101,29 +107,61 @@ class GitReclone
       end
     end
 
-    reclone remote, git_root.chomp unless @testing
+    reclone remote, git_root.chomp, branch unless @testing
   end
 
   # overwrite the local copy of the repository with the remote one
-  def reclone(remote, root)
-    # remove the git repo from this computer
-    if !@testing
-      tree = Dir.glob("*", File::FNM_DOTMATCH).select {|d| not ['.','..'].include? d }
-      FileUtils.rmtree (tree)
+  def reclone(remote, root, branch = nil)
+    # create a temporary directory for cloning
+    temp_dir = Dir.mktmpdir("git-reclone-")
+
+    begin
+      # clone into temp directory (disable credential prompts)
+      cloner = "GIT_TERMINAL_PROMPT=0 git clone \"#{remote}\" \"#{temp_dir}\" > /dev/null 2>&1"
+
+      if system(cloner)
+        # clone succeeded, now replace the local copy
+        if !@testing
+          tree = Dir.glob("*", File::FNM_DOTMATCH).select { |d| ![".", ".."].include? d }
+          FileUtils.rmtree(tree)
+
+          # move contents from temp to root
+          Dir.glob("#{temp_dir}/*", File::FNM_DOTMATCH).each do |item|
+            next if File.basename(item) == "." || File.basename(item) == ".."
+            FileUtils.mv(item, root)
+          end
+
+          # restore original branch if it exists
+          if branch && branch != "HEAD"
+            Dir.chdir(root) do
+              system("git checkout #{branch} > /dev/null 2>&1")
+            end
+          end
+        end
+
+        puts "Recloned successfully.".green
+        "Recloned successfully.".green
+      else
+        # clone failed
+        puts "Clone failed.".red
+        nil
+      end
+    ensure
+      # always clean up temp directory
+      FileUtils.rm_rf(temp_dir) if Dir.exist?(temp_dir)
     end
-
-    cloner = "git clone \"#{remote}\" \"#{root}\""
-
-    puts "Recloned successfully.".green if system(cloner)
   end
 end
 
-GitReclone::Help = <<-HELP
-#{'git reclone'.red}: a git repo restoring tool
+GitReclone::HELP = <<~HELP
+  #{"git reclone".red}: a git repo restoring tool
+  
+  replaces your local copy with a fresh clone from the remote.
+  clones to a temp directory first, so your local copy is safe if the clone fails.
+  to restore from a particular remote repository, specify the host:
 
-reclones from the remote listed first, overwriting your local copy.
-to restore from a particular remote repository, specify the host:
-
-    git reclone bitbucket # reclone using bitbucket
-    git reclone github # reclone using github
+      git reclone github    # reclone using github
+      git reclone bitbucket # reclone using bitbucket
+      git reclone gitea     # reclone using gitea
+      git reclone gogs      # reclone using gogs
 HELP

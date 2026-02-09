@@ -1,4 +1,4 @@
-task :default  => :spec
+task default: [:spec, :standard]
 
 # Load git-reclone files straight into ruby path
 lib = File.expand_path("../lib/", __FILE__)
@@ -7,8 +7,7 @@ $:.unshift lib unless $:.include?(lib)
 # gem name, version
 g = "git-reclone"
 require "git-reclone"
-v = GitReclone::Version
-
+v = GitReclone::VERSION
 
 # Testing
 #
@@ -18,10 +17,13 @@ RSpec::Core::RakeTask.new(:spec) do |rake|
   rake.verbose = true
 end
 
+# Linting
+#
+require "standard/rake"
+
 task :dev do
   sh 'filewatcher "**/*.rb" "clear && rake"'
 end
-
 
 # Gem management
 #
@@ -34,7 +36,6 @@ task :clean do
   sh "rm -fv *.gem"
 end
 
-task :push => [:clean, :build] do
+task push: [:clean, :build] do
   sh "gem push #{g}-#{v}.gem"
 end
-
