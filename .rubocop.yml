@@ -1,0 +1,53 @@
+# RuboCop configuration for git-reclone
+
+AllCops:
+  NewCops: enable
+  SuggestExtensions: false
+  TargetRubyVersion: 3.1
+
+# Disable gemspec metadata requirements
+Gemspec/RequireMFA:
+  Enabled: false
+
+Gemspec/RequiredRubyVersion:
+  Enabled: false
+
+Gemspec/DevelopmentDependencies:
+  Enabled: false
+
+# Allow slightly longer methods for clarity
+Metrics/MethodLength:
+  Max: 30
+
+# Allow slightly higher complexity for the clone/restore flow
+Metrics/AbcSize:
+  Max: 30
+
+Metrics/CyclomaticComplexity:
+  Max: 9
+
+Metrics/PerceivedComplexity:
+  Max: 10
+
+# GitReclone is a single small CLI class; splitting it up would scatter
+# tightly-related logic (arg parsing, cloning, banner) for no benefit
+Metrics/ClassLength:
+  Max: 160
+
+# A gemspec description is inherently a single long line
+Layout/LineLength:
+  Exclude:
+    - "*.gemspec"
+
+# GitReclone's public API (test = false) is intentional and used positionally
+# by the existing spec suite; not worth an API break for this cop
+Style/OptionalBooleanParameter:
+  Enabled: false
+
+# Concise single-letter params (o, a, x, r) match this script's terse style
+Naming/MethodParameterName:
+  Enabled: false
+
+# No class-level doc comment needed for this small, self-explanatory CLI class
+Style/Documentation:
+  Enabled: false

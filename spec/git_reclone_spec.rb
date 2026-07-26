@@ -33,6 +33,31 @@ describe GitReclone do
     expect(@gn.remote("fake")).to eq no_remote_err
   end
 
+  it "should disable verification with --force / -f" do
+    expect(@gn.instance_variable_get(:@verify)).to eq false
+    @gn.instance_variable_set(:@verify, true)
+    @gn.parse_opt("--force")
+    expect(@gn.instance_variable_get(:@verify)).to eq false
+
+    @gn.instance_variable_set(:@verify, true)
+    @gn.parse_opt("-f")
+    expect(@gn.instance_variable_get(:@verify)).to eq false
+  end
+
+  it "should expose the real (non-mocked) git remotes" do
+    expect(@gn.send(:real_remotes)).to be_an(Array)
+  end
+
+  it "should support the real (non-mocked) slowp implementation" do
+    expect { @gn.send(:real_slowp, "x") }.not_to raise_error
+  end
+
+  it "should abort before recloning when confirmation is declined" do
+    @gn.instance_variable_set(:@verify, true)
+    allow($stdin).to receive(:gets).and_return("n\n")
+    expect(@gn.verify(@gn.remotes.first)).to be_nil
+  end
+
   it "should handle pathnames with spaces" do
     remote = "https://github.com/octocat/Hello-World.git"
     gn_test_dir = "../test dir " + Time.now.to_s
@@ -86,6 +111,26 @@ describe GitReclone do
       expect(@gn.reclone(remote, gn_test_dir, "main")).to eq "\e[32mRecloned successfully.\e[0m"
     ensure
       FileUtils.rm_rf(gn_test_dir)
+    end
+  end
+
+  it "should replace the local directory contents when not in testing mode" do
+    remote = "https://github.com/octocat/Hello-World.git"
+    work_dir = Dir.mktmpdir("git-reclone-real-run-")
+    sentinel = File.join(work_dir, "sentinel.txt")
+    FileUtils.touch(sentinel)
+
+    begin
+      # run inside work_dir so reclone's "replace everything in the
+      # current directory" step only ever touches this scratch dir
+      Dir.chdir(work_dir) do
+        GitReclone.new(false).reclone(remote, work_dir, "main")
+      end
+
+      expect(File.exist?(sentinel)).to eq false
+      expect(Dir.exist?(File.join(work_dir, ".git"))).to eq true
+    ensure
+      FileUtils.rm_rf(work_dir)
     end
   end
 end

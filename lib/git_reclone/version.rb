@@ -1,5 +1,7 @@
+# frozen_string_literal: true
+
 # universal version tracking
 
 class GitReclone
-  VERSION = "1.0.0"
+  VERSION = '1.0.0'
 end
