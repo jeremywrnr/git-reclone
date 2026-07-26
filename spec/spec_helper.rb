@@ -13,9 +13,8 @@ if ENV["COVERAGE"]
     # SimpleCov's at_exit runs first, then ours
     SimpleCov.at_exit do
       SimpleCov.result.format!
-      # Current coverage is ~79%; ratchet this up as tests are added rather
-      # than requiring 100% up front
-      display_coverage_summary(fail_under: 75.0)
+      # Require 100% coverage - will exit 1 if below threshold
+      display_coverage_summary(fail_under: 100.0)
     end
   rescue LoadError => e
     warn "SimpleCov not available: #{e.message}"
@@ -28,6 +27,11 @@ require "fileutils"
 # mock remotes/puts
 
 class GitReclone
+  # keep the real implementations reachable for coverage of the
+  # non-mocked code paths (see git_reclone_spec.rb)
+  alias_method :real_remotes, :remotes
+  alias_method :real_slowp, :slowp
+
   def exit(x)
   end
 
