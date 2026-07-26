@@ -1,7 +1,7 @@
 # git-reclone :rocket:
 
 [![Gem Version](https://badge.fury.io/rb/git-reclone.svg)](https://badge.fury.io/rb/git-reclone)
-[![Build Status](https://app.travis-ci.com/jeremywrnr/git-reclone.svg)](https://app.travis-ci.com/github/jeremywrnr/git-reclone)
+[![CI](https://github.com/jeremywrnr/git-reclone/actions/workflows/ci.yml/badge.svg)](https://github.com/jeremywrnr/git-reclone/actions/workflows/ci.yml)
 [![MIT](https://img.shields.io/npm/l/alt.svg?style=flat)](http://jeremywrnr.com/mit-license)
 
 replace your local copy of a git repo with a fresh clone from your remote.
@@ -55,5 +55,5 @@ meant for?
 ## testing
 
     bundle || gem install bundler && bundle
-    rake # running git-reclone's tests
+    just spec # running git-reclone's tests
 
