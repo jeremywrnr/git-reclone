@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
-require "git-reclone"
+require 'git_reclone'
 
 # git-reclone by jeremy warner
 # easily reset git repo from remotes
