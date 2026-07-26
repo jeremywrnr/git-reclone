@@ -3,5 +3,5 @@
 # universal version tracking
 
 class GitReclone
-  VERSION = '1.0.0'
+  VERSION = '1.0.1'
 end
